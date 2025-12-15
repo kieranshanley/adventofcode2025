@@ -10,15 +10,15 @@ func TestGeneratePatterns(t *testing.T) {
 		in   string
 		want []string
 	}{
-		// {in: "", want: []string{}},
-		// {in: "1", want: []string{}},
+		{in: "", want: nil},
+		{in: "1", want: nil},
 		{in: "11", want: []string{"1"}},
 		{in: "22", want: []string{"2"}},
 		{in: "99", want: []string{"9"}},
-		{in: "121", want: nil},
-		{in: "1010", want: []string{"10"}},
-		{in: "222222", want: []string{"222"}},
-		{in: "1188511885", want: []string{"11885"}},
+		{in: "121", want: []string{"1"}},
+		{in: "1010", want: []string{"1", "10"}},
+		{in: "222222", want: []string{"2", "22", "222"}},
+		{in: "1188511885", want: []string{"1", "11", "1188", "11885"}},
 	}
 
 	for _, c := range cases {

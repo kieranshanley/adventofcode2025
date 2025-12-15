@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -76,7 +77,7 @@ func main() {
 	var total uint64 = 0
 	for _, idRange := range NumberRanges {
 		illegalIdsInRange := checkIds(idRange)
-		
+		fmt.Printf("Illegal Ids: %v", illegalIdsInRange)
 		for _, illegalId := range illegalIdsInRange {
 			total += illegalId
 		}
@@ -95,30 +96,57 @@ func convertStringToUint64(s string) uint64 {
 }
 
 func checkIds(idRange Range) []uint64 {
-	illegalIds := []uint64{}
+	illegalIds := map[uint64]struct{}{}
 	for i := idRange.Start; i <= idRange.End; i++ {
 		var numberAsString = strconv.FormatUint(uint64(i), 10)
 		patterns := generatePatterns(numberAsString)
 
 		// look for repetitions of these patterns in the number
 		for _, pattern := range patterns {
+		out:
 			// check if pattern exists in numberAsString
 			for i := 0; i <= len(numberAsString)-len(pattern); i++ {
 				// we dont want to allow pattern to occur next to each other
 				foundIndex := checkForPattern(numberAsString, i, pattern)
+				startIndex := foundIndex
 				if foundIndex != -1 {
-					// found pattern - check if it occurs again adjacent to it
-					nextIndex := foundIndex + len(pattern)
-					if checkForPattern(numberAsString, nextIndex, pattern) == nextIndex {
+					for {
+						// found one occurance - keep looking for more
+						startIndex += +len(pattern)
+						if startIndex >= len(numberAsString) {
+							break out
+						}
+						// search for another occurance of the pattern
+						foundIndex := checkForPattern(numberAsString, startIndex, pattern)
+						if foundIndex == -1 {
+							break out
+						}
 						// found adjacent pattern
-						illegalIds = append(illegalIds, convertStringToUint64(numberAsString))
+						if foundIndex == startIndex && (foundIndex == len(numberAsString)-len(pattern)) {
+							// found adjacent pattern
+							illegalIds[convertStringToUint64(numberAsString)] = struct{}{}
+						} else if foundIndex != startIndex {
+							break out
+						}
 					}
 				}
 			}
 		}
 	}
 
-	return illegalIds
+	return getIllegalIds(illegalIds)
+}
+
+func getIllegalIds(m map[uint64]struct{}) []uint64 {
+	var keys []uint64
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+	return keys
 }
 
 func getKeys(m map[string]struct{}) []string {
@@ -126,6 +154,10 @@ func getKeys(m map[string]struct{}) []string {
 	for key := range m {
 		keys = append(keys, key)
 	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
 	return keys
 }
 
@@ -137,10 +169,19 @@ func generatePatterns(targetString string) []string {
 		return getKeys(searchPatterns)
 	}
 
-	if len(targetString)%2 == 0 {
-		// even length string
-		searchPatterns[targetString[0:len(targetString)/2]] = struct{}{}
+	patternLength := len(targetString) / 2
+	for {
+
+		if patternLength == 0 {
+			break
+		}
+		numTimes := len(targetString) / patternLength
+		if len(targetString)%numTimes == 0 {
+			searchPatterns[targetString[0:patternLength]] = struct{}{}
+		}
+		patternLength--
 	}
+
 	return getKeys(searchPatterns)
 }
 
